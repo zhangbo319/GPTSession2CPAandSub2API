@@ -51,7 +51,9 @@ function createFakeElement(selector, options = {}) {
 
 function loadPageScript() {
   const htmlPath = path.join(__dirname, "..", "docs", "index.html");
+  const converterPath = path.join(__dirname, "..", "docs", "converter.js");
   const html = fs.readFileSync(htmlPath, "utf8");
+  const converterScript = fs.readFileSync(converterPath, "utf8");
   const match = html.match(/<script>\s*([\s\S]*?)\s*<\/script>\s*<\/body>/);
 
   assert.ok(match, "expected docs/index.html to contain one inline script");
@@ -101,10 +103,17 @@ function loadPageScript() {
     },
     setTimeout,
   };
+  context.window = context;
 
+  vm.runInNewContext(converterScript, context, { filename: "docs/converter.js" });
   vm.runInNewContext(match[1], context, { filename: "docs/index.html" });
 
   return { elements, formatButtons };
+}
+
+function loadConverterModule() {
+  const converterPath = path.join(__dirname, "..", "docs", "converter.js");
+  return require(converterPath);
 }
 
 function dispatch(element, type) {
@@ -212,7 +221,37 @@ function testAxonHubAuthJsonPreservesRealRefreshToken() {
   assert.equal(authJson.axonhub_note, undefined);
 }
 
+function testConverterModuleExportsSharedCore() {
+  const converter = loadConverterModule();
+
+  assert.equal(typeof converter.convertSession, "function");
+  assert.equal(typeof converter.buildSub2apiDocument, "function");
+
+  const converted = converter.convertSession({
+    user: {
+      id: "user-test",
+      email: "mark@example.com",
+    },
+    expires: "2026-08-06T14:29:36.155Z",
+    account: {
+      id: "00000000-0000-4000-9000-000000000000",
+      planType: "plus",
+    },
+    accessToken: "access-token",
+    sessionToken: "session-token",
+  }, {
+    now: new Date("2026-08-01T00:00:00.000Z"),
+    sourceName: "session-api",
+  });
+  const document = converter.buildSub2apiDocument([converted], new Date("2026-08-01T00:00:00.000Z"));
+
+  assert.equal(document.accounts.length, 1);
+  assert.equal(document.accounts[0].credentials.access_token, "access-token");
+  assert.equal(document.accounts[0].credentials.email, "mark@example.com");
+}
+
 testSyntheticIdTokenHasCodexParseableJwtFormat();
 testAxonHubAuthJsonUsesPlaceholderRefreshTokenWhenMissing();
 testAxonHubAuthJsonPreservesRealRefreshToken();
+testConverterModuleExportsSharedCore();
 console.log("convert-session tests passed");

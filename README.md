@@ -4,7 +4,39 @@
 
 ## 在线使用
 
-### [**》》 点我直接使用 《《**](https://gtxx3600.github.io/GPTSession2CPAandSub2API/)
+### [**》》 点我直接使用 《《**](https://zhangbo319.github.io/GPTSession2CPAandSub2API/)
+
+## 一键脚本使用
+
+如果你希望获得类似篡改猴一键生成的体验，可以安装：
+
+```text
+userscript/chatgpt-session-converter.user.js
+```
+
+脚本从 `0.2.1` 起内置转换核心，不再依赖 GitHub Pages 的 `converter.js`。如果你看到 `转换核心未加载`，通常是 Tampermonkey 里仍在运行旧版本脚本，请删除旧脚本后重新安装本文件。
+
+安装后打开 `https://chatgpt.com/`，页面右上角会出现 `Session 一键转换` 面板：
+
+- 选择输出格式：`sub2api`、`CPA`、`Cockpit`、`9router` 或 `AxonHub`
+- 点击 `生成 ...`：自动读取 `https://chatgpt.com/api/auth/session` 并复制 JSON 到剪贴板
+- 点击 `下载 JSON`：自动生成并下载当前格式的 JSON 文件
+
+### 同步导入 sub2api
+
+选择 `sub2api` 格式后，面板会显示 `sub2api 同步配置`：
+
+1. `sub2api 地址`：填写你的 sub2api 访问地址，例如 `http://your-sub2api-host:8080`。
+2. `管理员邮箱`：填写 sub2api 后台管理员邮箱。
+3. `管理员密码`：填写 sub2api 后台管理员密码。
+4. 点击 `保存配置`：保存地址和邮箱；密码默认不保存。
+5. 点击 `同步导入 sub2api`：脚本会读取当前 ChatGPT session，转换为 sub2api 账号导出 JSON，登录 sub2api 后调用 `/api/v1/admin/accounts/data` 完成导入。
+
+如果你勾选 `记住密码`，密码会保存到 Tampermonkey 的本地脚本存储中。这个存储不是密码库，只建议在个人可信电脑上使用。
+
+脚本声明了 `GM_xmlhttpRequest` 和 `@connect *`，用于从 `chatgpt.com` 页面跨域请求你配置的 sub2api 地址。除非点击 `同步导入 sub2api`，否则脚本只读取 `/api/auth/session` 并在本地转换，不会主动请求 sub2api。
+
+当前同步流程依赖 sub2api 普通账号密码登录。如果 sub2api 管理员账号启用了 2FA、Turnstile 或其他登录保护，自动同步会失败，需要先在后台使用不带额外验证的管理账号，或后续补充对应验证流程。
 
 ## 使用提示
 
@@ -59,3 +91,10 @@ docs/index.html
 ```
 
 所有解析和转换都在浏览器本地完成，不上传 token，不写入本地存储。
+
+## 开发验证
+
+```bash
+node tests/convert-session.test.js
+node tests/userscript.test.js
+```
